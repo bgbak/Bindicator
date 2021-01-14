@@ -15,10 +15,8 @@
 // edit the config.h tab and enter your Adafruit IO credentials
 // and any additional configuration needed for WiFi, cellular,
 // or ethernet clients.
+
 #include "config.h"
-
-/************************ Example Starts Here *******************************/
-
 #include "Adafruit_NeoPixel.h"
 
 #define PIXEL_PIN D2
@@ -27,8 +25,36 @@
 
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(PIXEL_COUNT, PIXEL_PIN, PIXEL_TYPE);
 
-// set up the 'color' feed
-AdafruitIO_Feed *color = io.feed("color");
+// set up feeds for the two indicators
+AdafruitIO_Feed *bin1 = io.feed("bindicator-1");
+AdafruitIO_Feed *bin2 = io.feed("bindicator-2");
+
+void initPixels()
+{
+  // Intialize pixels
+  pixels.begin();
+  pixels.show();
+}
+
+// Handle messages for color 1
+void handleBin1(AdafruitIO_Data *data)
+{
+  Serial.println("Received HEX: ");
+  Serial.println(data->value());
+  long color = data->toNeoPixel();
+  pixels.setPixelColor(0, color);
+  pixels.show();
+}
+
+// Handle messages for color 2
+void handleBin2(AdafruitIO_Data *data)
+{
+  Serial.println("Received HEX: ");
+  Serial.println(data->value());
+  long color = data->toNeoPixel();
+  pixels.setPixelColor(1, color);
+  pixels.show();
+}
 
 void setup()
 {
@@ -36,10 +62,6 @@ void setup()
 
   // start the serial connection
   Serial.begin(115200);
-
-  // wait for serial monitor to open
-  while (!Serial)
-    ;
 
   // connect to io.adafruit.com
   Serial.print("Connecting to Adafruit IO");
@@ -49,7 +71,8 @@ void setup()
   // the handleMessage function (defined below)
   // will be called whenever a message is
   // received from adafruit io.
-  color->onMessage(handleMessage);
+  bin1->onMessage(handleBin1);
+  bin2->onMessage(handleBin2);
 
   // wait for a connection
   while (io.status() < AIO_CONNECTED)
@@ -61,7 +84,8 @@ void setup()
   // we are connected
   Serial.println();
   Serial.println(io.statusText());
-  color->get();
+  bin1->get();
+  bin2->get();
 }
 
 void loop()
@@ -72,33 +96,4 @@ void loop()
   // function. it keeps the client connected to
   // io.adafruit.com, and processes any incoming data.
   io.run();
-}
-
-void initPixels()
-{
-  // Set lights to off
-  pixels.begin();
-  pixels.setPixelColor(0, 0, 0, 0);
-  pixels.setPixelColor(1, 0, 0, 0);
-  pixels.show();
-}
-
-// this function is called whenever a 'color' message
-// is received from Adafruit IO. it was attached to
-// the color feed in the setup() function above.
-void handleMessage(AdafruitIO_Data *data)
-{
-
-  // print RGB values and hex value
-  Serial.println("Received HEX: ");
-  Serial.println(data->value());
-
-  long color = data->toNeoPixel();
-
-  for (int i = 0; i < PIXEL_COUNT; ++i)
-  {
-    pixels.setPixelColor(i, color);
-  }
-
-  pixels.show();
 }
